@@ -1,5 +1,6 @@
 import config from 'config';
 import { authHeader } from '../_helpers';
+const axios = require('axios');
 
 export const userService = {
     login,
@@ -11,21 +12,21 @@ export const userService = {
     delete: _delete
 };
 
-function login(username, password) {
-    const requestOptions = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    };
-
-    return fetch(`${config.apiUrl}/users/authenticate`, requestOptions)
-        .then(handleResponse)
-        .then(user => {
-            // store user details and jwt token in local storage to keep user logged in between page refreshes
-            localStorage.setItem('user', JSON.stringify(user));
-
-            return user;
+async function login(email, password) {
+    try {
+        const response = await axios({
+            method: 'POST',
+            url: `${config.apiUrl}/login`,
+            data: JSON.stringify({ email, password }),
+            headers: { 'Content-Type': 'application/json' }
         });
+        console.log("Response :", response.data);
+        localStorage.setItem('Access-Token', response.data.access_token);
+        handleResponse(response);
+    }
+    catch (error) {
+        console.log("Error", error.message);
+    }    
 }
 
 function logout() {
@@ -51,15 +52,21 @@ function getById(id) {
     return fetch(`${config.apiUrl}/users/${id}`, requestOptions).then(handleResponse);
 }
 
-function register(user) {
-    const requestOptions = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user)
-    };
-
-    return fetch(`${config.apiUrl}/users/register`, requestOptions).then(handleResponse);
+async function register(user) {
+    try {
+        const response = await axios({
+            method: 'POST',
+            url: `${config.apiUrl}/sign-up`,
+            data: JSON.stringify(user),
+            headers: { 'Content-Type': 'application/json' }
+        });
+        handleResponse(response);
+    }
+    catch (error) {
+        console.log("Error", error.message);
+    }    
 }
+
 
 function update(user) {
     const requestOptions = {
@@ -82,6 +89,7 @@ function _delete(id) {
 }
 
 function handleResponse(response) {
+    console.log(response);
     return response.text().then(text => {
         const data = text && JSON.parse(text);
         if (!response.ok) {
